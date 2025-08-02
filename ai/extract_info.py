@@ -7,28 +7,6 @@ from dto.get_info import GetInfoRequest
 
 client = OpenAI()
 
-def extract_target_from_text(text: str) -> str:
-    """LLM을 이용해 텍스트에서 대상만 추출"""
-    target_prompt = f"""
-    다음 문장에서 화자가 대화를 하고 있는 상대방의 호칭을 분석해 출력하세요. (ex. 어머니, 아버지, 친구 등)
-    다른 설명 없이 대상만 출력하세요. (대화 상대가 존재 할 때만 호칭을 출력하고 그 외엔 X를 출력하세요)
-    문장: {text}
-    """
-    result = llm.invoke(target_prompt)
-    text = result.content.strip()
-    if text == "X":
-        return "자신"
-    return text
-
-def prepare_inputs(inputs):
-    raw_content = inputs["raw_content"]
-    return {
-        "target": extract_target_from_text(raw_content),
-        "raw_content": raw_content
-    }
-
-prepare_inputs_runnable = RunnableLambda(prepare_inputs)
-
 # 제목 생성 프롬프트
 title_prompt = ChatPromptTemplate.from_messages([
     ("system", """
@@ -59,11 +37,10 @@ rating_prompt = ChatPromptTemplate.from_messages([
 ])
 
 # 전체 체인 구성
-chain = prepare_inputs_runnable | RunnableMap({
-    "target": lambda x: x["target"],
+chain = RunnableMap({
     "title": (title_prompt | llm | StrOutputParser()),
     "rating": (rating_prompt | llm | StrOutputParser())
 })
 
 def extract_info(req: GetInfoRequest):
-    return chain.invoke({"raw_content": req.text})
+    return chain.invoke({"raw_content": req.text, "target": req.target})
