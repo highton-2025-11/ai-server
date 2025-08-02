@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  ai:
+    build:
+      context: .          # 현재 디렉토리에서 Dockerfile 사용
+      dockerfile: Dockerfile
+    container_name: ai-server
+    ports:
+      - "8000:8000"       # 호스트:컨테이너
+    env_file:
+      - .env              # 환경변수 파일 (있을 경우)
+    restart: unless-stopped
